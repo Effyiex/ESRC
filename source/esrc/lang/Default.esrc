@@ -1,0 +1,55 @@
+
+class Atomic<Type>:
+
+  Type value
+
+  Atomic(Type initial):
+    this.value = initial
+
+class Vector<Type>:
+
+  object[] buffer
+
+  Vector(Type... args):
+    this.buffer = args
+
+  function add(Type item):
+    object[] replace = new object[buffer.length + 1]
+    for(int i = 0; i < buffer.length; i++):
+      replace[i] = buffer[i]
+    replace[buffer.length] = item
+    this.buffer = replace
+
+  function remove(int index):
+    object[] replace = new object[buffer.length - 1]
+    for(int i = 0; i < buffer.length; i++):
+      if(i < index) replace[i] = buffer[i]
+      else if(i > index) replace[i - 1] = buffer[i]
+    this.buffer = replace
+
+  int indexOf(Type item):
+    for(int i = 0; i < buffer.length; i++):
+      if(buffer[i] == item) return i
+    return -1
+
+  function remove(Type item):
+    this.remove(indexOf(item))
+
+  int dimension():
+    return buffer.length
+
+class Window extends javax.swing.JFrame:
+
+  # java.awt.image.BufferedImage defaultIcon
+
+  #:
+    try {
+    java.io.InputStream iconStream = Class.forName("esrc.lang.Core").getResourceAsStream("Icon.png")
+    defaultIcon = javax.imageio.ImageIO.read(iconStream)
+    iconStream.close()
+    } catch(Exception e) {
+    e.printStackTrace()
+    }
+
+  Window():
+    this.setIconImage(defaultIcon)

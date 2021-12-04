@@ -36,16 +36,27 @@ namespace Effyiex.Source {
           b = (byte) (b - 256);
         bytes[i] = b;
       }
+      string[] filePath = JarFile.Replace("\\", "/").Split('/');
+      string fileName = filePath[filePath.Length - 1];
       ProcessStartInfo info = new ProcessStartInfo();
-      info.Arguments = string.Empty;
+      info.Arguments = " /c java -jar " + fileName;
       foreach(string arg in ProgramArgs) info.Arguments += ' ' + arg;
       using(FileStream stream = File.OpenWrite(JarFile)) {
         stream.Write(bytes, 0, bytes.Length);
         stream.Close();
       }
-      info.FileName = JarFile;
+      info.FileName = "cmd.exe";
       info.WorkingDirectory = Environment.CurrentDirectory;
-      Process.Start(info).WaitForExit();
+      info.UseShellExecute = false;
+      info.RedirectStandardOutput = true;
+      info.RedirectStandardError = true;
+      info.CreateNoWindow = true;
+      Process process = Process.Start(info);
+      process.BeginOutputReadLine();
+      process.BeginErrorReadLine();
+      process.OutputDataReceived += (s, e) => Console.WriteLine(e.Data);
+      process.ErrorDataReceived += (s, e) => Console.WriteLine(e.Data);
+      process.WaitForExit();
       File.Delete(JarFile);
     }
 

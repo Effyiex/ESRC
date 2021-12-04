@@ -1,7 +1,7 @@
 
 JDK = "%JAVA_HOME%"
 
-from glob import glob
+from glob import glob as folder_lookup
 from shutil import make_archive
 
 import os
@@ -9,9 +9,9 @@ import os
 DIR = os.getcwd().replace('\\', '/')
 if DIR.endswith('/'): DIR = DIR[:len(DIR) - 1]
 
-javac = f"{JDK}/bin/javac"
+javac = '\"' * 1 + f"{JDK}/bin/javac" + '\"' * 1
 
-java_files = glob(f"{DIR}/source/esrc/lang/*.java")
+java_files = folder_lookup(f"{DIR}/source/esrc/lang/*.java")
 
 source_files = ""
 
@@ -20,9 +20,11 @@ for java_file in java_files:
     file_name = file_tokens[len(file_tokens) - 1]
     source_files += file_name + ' '
 
-os.system(f"cd \"{DIR}/source/esrc/lang\" & \"\"\"{javac}\"\"\" -nowarn -source 8 -target 8 {source_files}")
+os.chdir(f"{DIR}/source/esrc/lang")
+os.system(f"\"{javac}\" -Xlint:deprecation -nowarn -source 8 -target 8 {source_files}")
+os.chdir(DIR)
 
-build_files = glob(f"{DIR}/source/esrc/lang/*")
+build_files = folder_lookup(f"{DIR}/source/esrc/lang/*")
 
 if not os.path.exists(f"{DIR}/compiled/classpath/esrc/lang"):
     os.makedirs(f"{DIR}/compiled/classpath/esrc/lang")
@@ -46,7 +48,6 @@ for build_file in build_files:
         dest_file.write(cur_file.read())
         dest_file.close()
         cur_file.close()
-
 
 make_archive(f"{DIR}/compiled/ESRCCore", "zip", f"{DIR}/compiled/classpath")
 if os.path.exists(f"{DIR}/compiled/ESRCCore.jar"): os.remove(f"{DIR}/compiled/ESRCCore.jar")

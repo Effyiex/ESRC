@@ -3,10 +3,7 @@ package esrc.lang;
 
 import java.awt.*;
 import javax.swing.*;
-
-import java.io.InputStream;
-
-import javax.imageio.ImageIO;
+import java.io.*;
 
 public class Editor {
 
@@ -19,7 +16,7 @@ public class Editor {
     frame.setSize(800, 480);
     try {
       InputStream icon = this.getClass().getResourceAsStream("Icon.png");
-      frame.setIconImage(ImageIO.read(icon));
+      frame.setIconImage(javax.imageio.ImageIO.read(icon));
       icon.close();
     } catch (Exception e) {
       e.printStackTrace();
