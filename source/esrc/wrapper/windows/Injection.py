@@ -11,7 +11,7 @@ def invert(byte):
 
 INJECTION = "Bytecode; /*{INJECTION}*/"
 
-source_read = open(f"{DIR}/source/esrc/wrapper/WindowsWrapper.cs", 'r')
+source_read = open(f"{DIR}/source/esrc/wrapper/Windows/Wrapper.cs", 'r')
 source_code = source_read.read()
 source_read.close()
 

@@ -8,6 +8,7 @@ public interface Parser {
 
   static String convertCode(String className, String code) {
     code = convertSyntax(code);
+    code = convertTryCatchBlocks(code);
     code = convertOperations(code);
     code = convertKeywords(code);
     code = convertConstructor(className, code);
@@ -15,7 +16,40 @@ public interface Parser {
     code = wrapScript(className, code);
     code = convertImports(code);
     code = appendSemicolons(code);
+    code = correctElseBlocks(code);
     return code;
+  }
+
+  static String convertSpacingOfLine(String line, String head) {
+    int spacing = analyseSpacingOfLine(head);
+    String trimmed = new String();
+    for(int i = analyseSpacingOfLine(line); i < line.length(); i++) trimmed += line.charAt(i);
+    for(int i = 0; i < spacing; i++) trimmed = head.charAt(0) + trimmed;
+    return trimmed;
+  }
+
+  static String correctElseBlocks(String code) {
+    String[] newLines = code.split("\n");
+    for(int i = 0; i < newLines.length; i++)
+      if(newLines[i].contains("else"))
+        if(newLines[i - 1].trim().equals("};"))
+          newLines[i - 1] = newLines[i - 1].replace("};", "}");
+    String newCode = new String();
+    for(String line : newLines) newCode += line + '\n';
+    return newCode;
+  }
+
+  static String convertTryCatchBlocks(String code) {
+    String[] newLines = code.split("\n");
+    for(int i = 0; i < newLines.length; i++)
+      if(newLines[i].contains("error {")) {
+        newLines[i - 1] = new String();
+        newLines[i] = replaceNonString(newLines[i], "error {", "} error {");
+      }
+    String newCode = new String();
+    for(String line : newLines) newCode += line + '\n';
+    newCode = replaceNonString(newCode, "error {", "catch(Exception e) {");
+    return newCode;
   }
 
   static String appendSemicolons(String code) {
@@ -50,6 +84,7 @@ public interface Parser {
 
   static String convertSyntax(String code) {
     code = replaceNonString(code, ":", " {");
+    code = replaceNonString(code, " { {", "::");
     int spacing = analyseSpacing(code);
     String newCode = new String();
     int concurrent = 0;
@@ -63,7 +98,10 @@ public interface Parser {
       concurrent = lineSpacing;
       newCode += line + '\n';
     }
-    if(concurrent > 0) newCode += "\n}";
+    while(concurrent > 0) {
+      newCode += "\n}";
+      concurrent -= spacing;
+    }
     return newCode;
   }
 
@@ -93,7 +131,7 @@ public interface Parser {
   }
 
   static String convertConstructor(String className, String code) {
-    return replaceNonString(code, "entry {", "public " + className + "() {");
+    return replaceNonString(code, "entry {", "public static " + className + " SCRIPT; public " + className + "() { SCRIPT = this; ");
   }
 
   static String replaceNonString(String code, Object key, Object value) {
@@ -124,12 +162,12 @@ public interface Parser {
   }
 
   static String convertKeywords(String code) {
-    code = replaceNonString(code, "bool", "boolean");
     code = replaceNonString(code, "string", "String");
-    code = replaceNonString(code, "string.empty", "\"\"");
     code = replaceNonString(code, "object", "Object");
-    code = replaceNonString(code, "function", "void");
-    code = replaceNonString(code, "class", "static class");
+    code = replaceNonString(code, "String.empty", "\"\"");
+    code = replaceNonString(code, "function ", "void ");
+    code = replaceNonString(code, "class ", "static class ");
+    code = replaceNonString(code, "loop {", "while(true) { if(false) break; ");
     return code;
   }
 

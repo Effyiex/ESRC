@@ -31,6 +31,7 @@ public class Launcher implements Core {
 
   public void execute() {
     try {
+      if(!WORKSPACE.exists()) WORKSPACE.mkdir();
       InputStream scriptInput = new FileInputStream(scriptFile);
       byte[] scriptBuffer = new byte[scriptInput.available()];
       scriptInput.read(scriptBuffer);
@@ -54,6 +55,14 @@ public class Launcher implements Core {
       Class<?> scriptClass = classLoader.loadClass(classFile
         .getName().substring(0, classFile.getName().lastIndexOf('.')));
       this.scriptInstance = scriptClass.getConstructors()[0].newInstance();
+      javaFile.delete();
+      classFile.delete();
+      for(File tempFile : WORKSPACE.listFiles()) {
+        String tempName = tempFile.getName();
+        if(tempName.startsWith(className + '$') && tempName.endsWith(".class"))
+        tempFile.delete();
+      }
+      if(WORKSPACE.exists()) WORKSPACE.delete();
     } catch (Exception e) {
       e.printStackTrace();
     }

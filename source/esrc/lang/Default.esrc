@@ -35,21 +35,261 @@ class Vector<Type>:
   function remove(Type item):
     this.remove(indexOf(item))
 
+  Type get(int index):
+    return (Type) buffer[index]
+
   int dimension():
     return buffer.length
 
-class Window extends javax.swing.JFrame:
+class Reflect:
+
+  # object invoke(string header, string method, object... args):
+    try:
+      Class<?> javaClass = Class.forName(header)
+      java.lang.reflect.Method invokable = null
+      for(java.lang.reflect.Method m in javaClass.getMethods()):
+        if(m.getName().equals(method) and m.getParameterCount() == args.length):
+          invokable = m
+          break
+      invokable.setAccessible(true)
+      return invokable.invoke(null, args)
+    error:
+      e.printStackTrace()
+    return null
+
+  class Instance:
+
+    Class<?> javaClass
+    object javaInstance
+
+    enum Type:
+      CONSTRUCT,
+      GIVEN
+
+    $ string header
+
+    Instance(Type type, String header, object... args):
+      this.header = header
+      try:
+        this.javaClass = Class.forName(header)
+        if(type == Type.GIVEN) this.javaInstance = args[0]
+        else:
+          for(java.lang.reflect.Constructor c in javaClass.getConstructors()):
+            if(c.getParameterCount() == args.length):
+              this.javaInstance = c.newInstance(args)
+              break
+      error:
+        e.printStackTrace()
+
+    Instance(String header, object... args):
+      this(Type.CONSTRUCT, header, args)
+
+    object invoke(string method, object... args):
+      try:
+        java.lang.reflect.Method invokable = null
+        Class<?> from = javaClass
+        LOOKUP in while(invokable == null):
+          if(from != null):
+            for(java.lang.reflect.Method m in from.getDeclaredMethods()):
+              if(m.getName().equals(method) and m.getParameterCount() == args.length):
+                invokable = m
+                break LOOKUP
+          else break
+          from = from.getSuperclass()
+        invokable.setAccessible(true)
+        return invokable.invoke(javaInstance, args)
+      error:
+        e.printStackTrace()
+      return null
+
+class Window:
+
+  $# int TITLEBAR_HEIGHT = 32
 
   # java.awt.image.BufferedImage defaultIcon
 
   #:
-    try {
-    java.io.InputStream iconStream = Class.forName("esrc.lang.Core").getResourceAsStream("Icon.png")
-    defaultIcon = javax.imageio.ImageIO.read(iconStream)
-    iconStream.close()
-    } catch(Exception e) {
-    e.printStackTrace()
-    }
+    try:
+      java.io.InputStream iconStream = Class.forName("esrc.lang.Core").getResourceAsStream("Icon.png")
+      defaultIcon = javax.imageio.ImageIO.read(iconStream)
+      iconStream.close()
+    error:
+      e.printStackTrace()
+
+  javax.swing.JPanel canvas = new javax.swing.JPanel():
+
+    protected function paintComponent(java.awt.Graphics g3d):
+      java.awt.Graphics2D gl = ((java.awt.Graphics2D) g3d)
+      gl.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON)
+      gl.setColor(new java.awt.Color(33, 33, 36))
+      gl.fillRect(0, 0, getWidth(), getHeight())
+      if(titlebar):
+        gl.setColor(new java.awt.Color(22, 22, 24))
+        gl.fillRect(0, 0, getWidth(), TITLEBAR_HEIGHT)
+        gl.setColor(new java.awt.Color(200, 200, 222))
+        gl.drawString(Window.this.title, TITLEBAR_HEIGHT, TITLEBAR_HEIGHT / 3 * 2)
+        gl.drawImage(defaultIcon, TITLEBAR_HEIGHT / 4, TITLEBAR_HEIGHT / 4, TITLEBAR_HEIGHT / 2, TITLEBAR_HEIGHT / 2, null)
+        gl.setColor(new java.awt.Color(222, 55, 111))
+        gl.fillOval(getWidth() - TITLEBAR_HEIGHT * 1 + TITLEBAR_HEIGHT / 4, TITLEBAR_HEIGHT / 4, TITLEBAR_HEIGHT / 2, TITLEBAR_HEIGHT / 2)
+        gl.setColor(new java.awt.Color(222, 222, 55))
+        gl.fillOval(getWidth() - TITLEBAR_HEIGHT * 2 + TITLEBAR_HEIGHT / 4, TITLEBAR_HEIGHT / 4, TITLEBAR_HEIGHT / 2, TITLEBAR_HEIGHT / 2)
+        gl.setColor(new java.awt.Color(55, 222, 111))
+        gl.fillOval(getWidth() - TITLEBAR_HEIGHT * 3 + TITLEBAR_HEIGHT / 4, TITLEBAR_HEIGHT / 4, TITLEBAR_HEIGHT / 2, TITLEBAR_HEIGHT / 2)
+        gl.translate(0, TITLEBAR_HEIGHT)
+
+  boolean titlebar = true
+
+  Reflect.Instance base
+
+  function onControlButtonsClick(int button):
+    java.awt.Point cursor = canvas.getMousePosition()
+    if(cursor.y < TITLEBAR_HEIGHT):
+      int control = (canvas.getWidth() - cursor.x) / TITLEBAR_HEIGHT
+      if(control == 0) this.base.invoke("setVisible", false)
+      else if(control == 1) System.out.println("ERROR: Not supported, yet.")
+      else if(control == 2) this.base.invoke("setState", 1)
+
+  Window(boolean floating):
+    if(floating) this.base = new Reflect.Instance("javax.swing.JWindow")
+    else:
+      this.base = new Reflect.Instance("javax.swing.JFrame")
+      this.base.invoke("setUndecorated", true)
+      this.base.invoke("setIconImage", defaultIcon)
+    this.base.invoke("add", canvas)
+    this.base.invoke("addMouseListener", mouseListener)
+    this.base.invoke("addKeyListener", keyListener)
+    this.updateThread.start()
+    this.onMouseDown.add(this::onControlButtonsClick)
 
   Window():
-    this.setIconImage(defaultIcon)
+    this(false)
+
+  string title = string.empty
+  Runnable closeOperation = () -> System.exit(0)
+
+  int framerate = 60
+
+  boolean hiddenByFunction = true
+  boolean closeOperationRan = false
+
+  Runnable updateRoutine = () ->:
+    loop:
+      long tickDelay = Math.round(1000.0D / framerate)
+      try:
+        Thread.sleep(tickDelay)
+      error:
+        break
+      if(Window.this.isVisible()):
+        if(base.javaInstance instanceof javax.swing.JFrame):
+          string currentTitle = (string) base.invoke("getTitle")
+          if(currentTitle != title) base.invoke("setTitle", title)
+        canvas.repaint()
+        closeOperationRan = false
+      else if(!hiddenByFunction and closeOperation != null and !closeOperationRan):
+        closeOperation.run()
+        closeOperationRan = true
+
+  Vector<java.util.function.Consumer<Integer>> onKeyDown = new Vector()
+  Vector<java.util.function.Consumer<Integer>> onKeyUp = new Vector()
+
+  Vector<Integer> holdKeys = new Vector()
+
+  java.awt.event.KeyListener keyListener = new java.awt.event.KeyListener():
+
+    public function keyPressed(java.awt.event.KeyEvent event):
+      if(holdKeys.indexOf(event.getKeyCode()) < 0):
+        for(object obj in onKeyDown.buffer) ((java.util.function.Consumer) obj).accept(event.getKeyCode())
+        holdKeys.add(event.getKeyCode())
+
+    public function keyReleased(java.awt.event.KeyEvent event):
+      if(0 <= holdKeys.indexOf(event.getKeyCode())):
+        for(object obj in onKeyUp.buffer) ((java.util.function.Consumer) obj).accept(event.getKeyCode())
+        holdKeys.remove((Integer) event.getKeyCode())
+
+    public function keyTyped(java.awt.event.KeyEvent event):
+      return
+
+  Vector<java.util.function.Consumer<Integer>> onMouseDown = new Vector()
+  Vector<java.util.function.Consumer<Integer>> onMouseUp = new Vector()
+
+  Vector<Integer> holdMouseButtons = new Vector()
+
+  java.awt.event.MouseListener mouseListener = new java.awt.event.MouseListener():
+
+    java.awt.Point dragging
+
+    public function mouseExited(java.awt.event.MouseEvent event):
+      return
+
+    public function mouseEntered(java.awt.event.MouseEvent event):
+      return
+
+    public function mouseClicked(java.awt.event.MouseEvent event):
+      return
+
+    public function mousePressed(java.awt.event.MouseEvent event):
+      if(event.getButton() == 1 and event.getY() < TITLEBAR_HEIGHT and titlebar):
+        dragging = event.getPoint()
+        if(event.getX() > canvas.getWidth() - TITLEBAR_HEIGHT * 3) dragging = null
+        Runnable draggingRoutine = () ->:
+          while(dragging != null):
+            java.awt.Point global = java.awt.MouseInfo.getPointerInfo().getLocation()
+            global.x -= dragging.x
+            global.y -= dragging.y
+            base.invoke("setLocation", global.x, global.y)
+            try:
+              Thread.sleep(1L)
+            error:
+              break
+        new Thread(draggingRoutine).start()
+      if(holdMouseButtons.indexOf(event.getButton()) < 0):
+        for(object obj in onMouseDown.buffer) ((java.util.function.Consumer) obj).accept(event.getButton())
+        holdMouseButtons.add(event.getButton())
+
+    public function mouseReleased(java.awt.event.MouseEvent event):
+      if(event.getButton() == 1) dragging = null
+      if(0 <= holdMouseButtons.indexOf(event.getButton())):
+        for(object obj in onMouseUp.buffer) ((java.util.function.Consumer) obj).accept(event.getButton())
+        holdMouseButtons.remove((Integer) event.getButton())
+
+  Thread updateThread = new Thread(updateRoutine)
+
+  function show():
+    this.base.invoke("setVisible", true)
+    this.hiddenByFunction = false
+
+  function hide():
+    this.base.invoke("setVisible", false)
+    this.hiddenByFunction = true
+
+  boolean isVisible():
+    return (boolean) this.base.invoke("isVisible")
+
+  Vector<Float> anker = new Vector(0, 0)
+
+  Vector<Integer> getScale():
+    java.awt.Dimension size = (java.awt.Dimension) base.invoke("getSize")
+    if(titlebar) size.height -= TITLEBAR_HEIGHT
+    return new Vector(size.width, size.height)
+
+  function position(int x, int y):
+    Vector<Integer> scale = this.getScale()
+    x -= Math.round(anker.get(0) * scale.get(0))
+    y -= Math.round(anker.get(1) * scale.get(1))
+    this.base.invoke("setLocation", x, y)
+
+  function position(float x, float y):
+    java.awt.Dimension screen = java.awt.Toolkit.getDefaultToolkit().getScreenSize()
+    int iX = Math.round(screen.width * x)
+    int iY = Math.round(screen.height * y)
+    this.position(iX, iY)
+
+  function scale(int width, int height):
+    if(titlebar) height += TITLEBAR_HEIGHT
+    this.base.invoke("setSize", width, height)
+
+  function scale(float width, float height):
+    java.awt.Dimension screen = java.awt.Toolkit.getDefaultToolkit().getScreenSize()
+    int iWidth = Math.round(screen.width * width)
+    int iHeight = Math.round(screen.height * height)
+    this.scale(iWidth, iHeight)

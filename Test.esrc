@@ -1,0 +1,32 @@
+
+using:
+  java.io
+
+$ Window window = new Window()
+
+function onKeyDown(int code):
+  System.out.println("Pressed: " + code)
+
+function onKeyUp(int code):
+  System.out.println("Released: " + code)
+
+entry:
+  window.closeOperation = () ->:
+    System.out.println("Stopping \"" + window.title + "\"...")
+    System.exit(0)
+  window.title = "ESRCTest - designed by Effyiex"
+  window.anker = new Vector(0.5F, 0.5F)
+  window.scale(0.33F, 0.33F)
+  window.position(0.5F, 0.5F)
+  window.show()
+  window.onKeyDown.add(SCRIPT::onKeyDown)
+  window.onKeyUp.add(SCRIPT::onKeyUp)
+  try:
+    InputStream sourceStream = new FileInputStream(new File(System.getProperty("user.dir") + "/Test.esrc"))
+    byte[] buffer = new byte[sourceStream.available()]
+    sourceStream.read(buffer)
+    sourceStream.close()
+    String sourceCode = new String(buffer)
+    System.out.println("Sourcecode:\n" + sourceCode)
+  error:
+    e.printStackTrace()

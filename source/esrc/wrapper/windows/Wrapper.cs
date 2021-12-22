@@ -17,14 +17,14 @@ namespace Effyiex.Source {
     public readonly string JarFile, ExeFile;
 
     public static void Main(string[] args) {
-      new WinWrapper(args);
+      WinWrapper wrapper = new WinWrapper(args);
+      wrapper.createProcess();
     }
 
     public WinWrapper(string[] args) {
       this.ProgramArgs = args;
       this.ExeFile = Process.GetCurrentProcess().MainModule.FileName;
-      this.JarFile = Path.GetTempPath() + '\\' + ExeFile.Substring(ExeFile.LastIndexOf('\\') + 1).Replace(".exe", ".jar");
-      this.createProcess();
+      this.JarFile = Environment.CurrentDirectory + '\\' + ExeFile.Substring(ExeFile.LastIndexOf('\\') + 1).Replace(".exe", ".jar");
     }
 
     public void createProcess() {
@@ -32,20 +32,23 @@ namespace Effyiex.Source {
       for(int i = 0; i < bytes.Length; i++) {
         byte b = Bytecode[i];
         b = (byte) (b + 128);
-        if(b > 255)
-          b = (byte) (b - 256);
+        if(b > 255) b = (byte) (b - 256);
         bytes[i] = b;
       }
       string[] filePath = JarFile.Replace("\\", "/").Split('/');
       string fileName = filePath[filePath.Length - 1];
       ProcessStartInfo info = new ProcessStartInfo();
       info.Arguments = " /c java -jar " + fileName;
-      foreach(string arg in ProgramArgs) info.Arguments += ' ' + arg;
+      string scriptFile = string.Empty;
+      foreach(string arg in ProgramArgs) scriptFile += ' ' + arg;
+      if(scriptFile.Contains(".esrc") && !(scriptFile.Contains('/') || scriptFile.Contains('\\')))
+      scriptFile = ' ' + Environment.CurrentDirectory + '/' + scriptFile.Substring(1);
+      info.Arguments += scriptFile;
       using(FileStream stream = File.OpenWrite(JarFile)) {
         stream.Write(bytes, 0, bytes.Length);
         stream.Close();
       }
-      info.FileName = "cmd.exe";
+      info.FileName = "cmd";
       info.WorkingDirectory = Environment.CurrentDirectory;
       info.UseShellExecute = false;
       info.RedirectStandardOutput = true;
