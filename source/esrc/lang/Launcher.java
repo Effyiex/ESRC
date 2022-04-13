@@ -44,16 +44,13 @@ public class Launcher implements Core {
       OutputStream javaOutput = new FileOutputStream(javaFile);
       javaOutput.write(script.getBytes());
       javaOutput.close();
-      Process compileProcess = Runtime.getRuntime().exec("cmd /c \"cd /d \""
-       + WORKSPACE.getAbsolutePath() + "\" & javac -nowarn -source 8 -target 8 " + javaFile.getName() + '\"');
+      Process compileProcess = Runtime.getRuntime().exec("cmd /c \"cd /d \"" + WORKSPACE.getAbsolutePath() + "\" & javac -nowarn -source 8 -target 8 " + javaFile.getName() + '\"');
       BufferedReader compileLog = new BufferedReader(new InputStreamReader(compileProcess.getErrorStream()));
       String output;
       while(compileProcess.isAlive() && (output = compileLog.readLine()) != null)
       System.out.print(output + '\n');
-      ClassLoader classLoader = new URLClassLoader(new URL[] { classFile
-        .getParentFile().toURI().toURL() }, ClassLoader.getSystemClassLoader());
-      Class<?> scriptClass = classLoader.loadClass(classFile
-        .getName().substring(0, classFile.getName().lastIndexOf('.')));
+      ClassLoader classLoader = new URLClassLoader(new URL[] { classFile.getParentFile().toURI().toURL() }, ClassLoader.getSystemClassLoader());
+      Class<?> scriptClass = classLoader.loadClass(classFile.getName().substring(0, classFile.getName().lastIndexOf('.')));
       this.scriptInstance = scriptClass.getConstructors()[0].newInstance();
       javaFile.delete();
       classFile.delete();

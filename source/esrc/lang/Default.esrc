@@ -1,10 +1,35 @@
 
+class ConsoleHandler:
+
+  function log(string... text):
+    for(string part in text) System.out.println(part)
+
+  string input(string... text):
+    for(string part in text) System.out.print(part)
+    return System.console().readLine()
+
+# ConsoleHandler console = new ConsoleHandler()
+
 class Atomic<Type>:
 
-  Type value
+  local boolean sealed = false
+  local Type value
 
   Atomic(Type initial):
     this.value = initial
+
+  Atomic():
+    this(null)
+
+  void set(Type value):
+    this.value = value
+
+  Type get():
+    return value
+
+  Atomic<Type> seal():
+    this.sealed = true
+    return this
 
 class Vector<Type>:
 
@@ -47,8 +72,8 @@ class Reflect:
     try:
       Class<?> javaClass = Class.forName(header)
       java.lang.reflect.Method invokable = null
-      for(java.lang.reflect.Method m in javaClass.getMethods()):
-        if(m.getName().equals(method) and m.getParameterCount() == args.length):
+      for java.lang.reflect.Method m in javaClass.getMethods():
+        if m.getName().equals(method) and m.getParameterCount() == args.length:
           invokable = m
           break
       invokable.setAccessible(true)
@@ -228,7 +253,7 @@ class Window:
       return
 
     public function mousePressed(java.awt.event.MouseEvent event):
-      if(event.getButton() == 1 and event.getY() < TITLEBAR_HEIGHT and titlebar):
+      if event.getButton() == 1 and event.getY() < TITLEBAR_HEIGHT and titlebar:
         dragging = event.getPoint()
         if(event.getX() > canvas.getWidth() - TITLEBAR_HEIGHT * 3) dragging = null
         Runnable draggingRoutine = () ->:

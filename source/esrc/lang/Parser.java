@@ -7,6 +7,7 @@ import java.util.List;
 public interface Parser {
 
   static String convertCode(String className, String code) {
+    code = convertBracketlessStatements(code);
     code = convertSyntax(code);
     code = convertTryCatchBlocks(code);
     code = convertOperations(code);
@@ -26,6 +27,23 @@ public interface Parser {
     for(int i = analyseSpacingOfLine(line); i < line.length(); i++) trimmed += line.charAt(i);
     for(int i = 0; i < spacing; i++) trimmed = head.charAt(0) + trimmed;
     return trimmed;
+  }
+
+  String[] BRACKETLESS_STATEMENTS = new String[] { "if", "for", "while" };
+
+  static String convertBracketlessStatements(String code) {
+    String output = new String();
+    for(String line : code.split("\n")) {
+      for(String condition : BRACKETLESS_STATEMENTS) {
+        if(line.contains(condition + ' ')) {
+          line = replaceNonString(line, condition + ' ', condition + '(');
+          line = replaceNonString(line, ':', "):");
+          break;
+        }
+      }
+      output += line + '\n';
+    }
+    return output;
   }
 
   static String correctElseBlocks(String code) {
@@ -112,6 +130,8 @@ public interface Parser {
   static String convertModifiers(String code) {
     code = replaceNonString(code, '$', "final ");
     code = replaceNonString(code, '#', "static ");
+    code = replaceNonString(code, "local ", "private ");
+    code = replaceNonString(code, "secured ", "protected ");
     return code;
   }
 
@@ -165,6 +185,11 @@ public interface Parser {
     code = replaceNonString(code, "string", "String");
     code = replaceNonString(code, "object", "Object");
     code = replaceNonString(code, "String.empty", "\"\"");
+    code = replaceNonString(code, "int.parse(", "Integer.parseInt(");
+    code = replaceNonString(code, "float.parse(", "Float.parseFloat(");
+    code = replaceNonString(code, "double.parse(", "Double.parseDouble(");
+    code = replaceNonString(code, "long.parse(", "Long.parseLong(");
+    code = replaceNonString(code, "short.parse(", "Short.parseShort(");
     code = replaceNonString(code, "function ", "void ");
     code = replaceNonString(code, "class ", "static class ");
     code = replaceNonString(code, "loop {", "while(true) { if(false) break; ");

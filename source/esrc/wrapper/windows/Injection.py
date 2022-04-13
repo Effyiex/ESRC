@@ -1,4 +1,6 @@
 
+# Additional step, maybe completly useless cause this is an open source software and there is no need for a encryption.
+
 import os
 
 DIR = os.getcwd().replace('\\', '/')
