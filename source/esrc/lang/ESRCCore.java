@@ -3,9 +3,10 @@ package esrc.lang;
 
 import java.io.File;
 
-public interface Core {
+public interface ESRCCore {
 
-  File WORKSPACE = new File(System.getProperty("user.dir") + "/ESRCWorkspace");
+  String FILE_EXTENSION = ".esrc";
+  File WORKSPACE = new File(System.getProperty("user.dir") + '/' + FILE_EXTENSION);
 
   static boolean contains(Object[] array, Object obj) {
     for(Object item : array)
@@ -15,13 +16,14 @@ public interface Core {
   }
 
   static void main(String... args) {
-    if(contains(args, "-IDE")) Editor.INSTANCE.launch();
+    if(contains(args, "-IDE")) ESRCEditor.INSTANCE.launch();
     else {
       String fileName = new String();
       for(String arg : args) fileName += arg + ' ';
       if(fileName.trim().isEmpty()) return;
       fileName = fileName.substring(0, fileName.length() - 1);
-      new Launcher(fileName).execute();
+      if(!fileName.endsWith(FILE_EXTENSION)) fileName += FILE_EXTENSION;
+      new ESRCLauncher(fileName).execute();
     }
   }
 

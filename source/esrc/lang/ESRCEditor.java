@@ -5,13 +5,13 @@ import java.awt.*;
 import javax.swing.*;
 import java.io.*;
 
-public class Editor {
+public class ESRCEditor {
 
-  public static final Editor INSTANCE = new Editor();
+  public static final ESRCEditor INSTANCE = new ESRCEditor();
 
   public final JFrame frame = new JFrame("IDE for Effyiex-Source.");
 
-  public Editor() {
+  public ESRCEditor() {
     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     frame.setSize(800, 480);
     try {

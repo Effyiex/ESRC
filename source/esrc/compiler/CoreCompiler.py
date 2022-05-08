@@ -4,7 +4,7 @@ JDK = "%JAVA_HOME%"
 from glob import glob as folder_lookup
 from shutil import make_archive
 
-import os
+import os, time
 
 DIR = os.getcwd().replace('\\', '/')
 if DIR.endswith('/'): DIR = DIR[:len(DIR) - 1]
@@ -32,7 +32,7 @@ if not os.path.exists(f"{DIR}/compiled/classpath/esrc/lang"):
 if not os.path.exists(f"{DIR}/compiled/classpath/META-INF"):
     os.mkdir(f"{DIR}/compiled/classpath/META-INF")
     manifest = open(f"{DIR}/compiled/classpath/META-INF/MANIFEST.MF", 'w')
-    manifest.write("Manifest-Version: 1.0\nMain-Class: esrc.lang.Core\n")
+    manifest.write("Manifest-Version: 1.0\nMain-Class: esrc.lang.ESRCCore\n")
     manifest.close()
 
 for build_file in build_files:
@@ -51,4 +51,5 @@ for build_file in build_files:
 
 make_archive(f"{DIR}/compiled/ESRCCore", "zip", f"{DIR}/compiled/classpath")
 if os.path.exists(f"{DIR}/compiled/ESRCCore.jar"): os.remove(f"{DIR}/compiled/ESRCCore.jar")
+time.sleep(1)
 os.rename(f"{DIR}/compiled/ESRCCore.zip", f"{DIR}/compiled/ESRCCore.jar")

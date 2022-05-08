@@ -1,18 +1,25 @@
 
-function hello():
-  Window win = new Window()
-  win.title = "Hello World"
-  win.scale(0.5F, 0.5F)
-  win.anker = new Vector(0.5F, 0.5F)
-  win.position(0.5F, 0.5F)
-  win.show()
+using:
+  JAR/JWebApplet
+  de.prplx.jwa
+  de.prplx.jwa.rendering
+  de.prplx.jwa.utilities
+  java.awt
+  java.io
+  javax.imageio
+  java.awt.image
 
 entry:
-  hello()
-  int age = int.parse("19")
-  if 21 <= age:
-    console.log("U can legally consume alcohol in most parts of the world.")
-  else if 18 <= age:
-    console.log("U can legally consume alcohol in most of europe.")
-  else:
-    console.log("Consumption of alcohol is forbidden to you!")
+  JWALogger.setState(false)
+  JWAScene scene = new JWAScene("Test")
+  scene.setBackground(Color.BLACK)
+  try:
+    InputStream iconStream = ESRCCore.class.getResourceAsStream("Icon.png")
+    BufferedImage iconImage = ImageIO.read(iconStream)
+    iconStream.close()
+    JWebApplet applet = new JWebApplet(80)
+    applet.setDefaultScene(scene)
+    applet.setFavicon(iconImage)
+    applet.start()
+  error:
+    e.printStackTrace()

@@ -1,10 +1,21 @@
 
+# String[] programArgs
+
+public # function main(String... args):
+  programArgs = args
+  new %ESRC_INSTANCE%()
+
 class ConsoleHandler:
 
+  string prefix = string.empty
+
   function log(string... text):
-    for(string part in text) System.out.println(part)
+    System.out.print(prefix)
+    for(string part in text) System.out.print(part)
+    System.out.print('\n')
 
   string input(string... text):
+    System.out.print(prefix)
     for(string part in text) System.out.print(part)
     return System.console().readLine()
 

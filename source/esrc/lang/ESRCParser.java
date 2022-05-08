@@ -4,7 +4,7 @@ package esrc.lang;
 import java.util.ArrayList;
 import java.util.List;
 
-public interface Parser {
+public interface ESRCParser {
 
   static String convertCode(String className, String code) {
     code = convertBracketlessStatements(code);
@@ -137,17 +137,47 @@ public interface Parser {
 
   static String convertImports(String code) {
     String cut = new String();
-    String imports = new String();
+    String imports = "import esrc.lang.*;\n";
     boolean usingDirectives = false;
     for(String line : code.split(String.valueOf('\n'))) {
       if(line.length() > 1 && line.startsWith(String.valueOf(';'))) line = line.substring(1);
       if(usingDirectives) {
         if(line.trim().equalsIgnoreCase(String.valueOf('}'))) usingDirectives = false;
-        else imports += "import " + line.trim() + ".*;\n";
+        else {
+          String prefix = line.trim().split("/")[0];
+          String sub = line.trim().substring(prefix.length());
+          switch(prefix) {
+
+            case "JAR":
+              break;
+
+            default:
+              imports += "import " + line.trim() + ".*;\n";
+
+          }
+
+        }
       } else if(line.trim().equalsIgnoreCase("using {")) usingDirectives = true;
       else cut += line + '\n';
     }
     return imports + cut;
+  }
+
+  static String[] getJarImports(String code) {
+    code = convertSyntax(code);
+    boolean usingDirectives = false;
+    String jars = new String();
+    for(String line : code.split(String.valueOf('\n'))) {
+      if(line.length() > 1 && line.startsWith(String.valueOf(';'))) line = line.substring(1);
+      if(usingDirectives) {
+        if(line.trim().equalsIgnoreCase(String.valueOf('}'))) usingDirectives = false;
+        else {
+          String prefix = line.trim().split("/")[0];
+          if(prefix.equals("JAR")) jars += line.trim().substring(prefix.length() + 1) + ", ";
+        }
+      } else if(line.trim().equalsIgnoreCase("using {")) usingDirectives = true;
+    }
+    return jars.split(", ");
   }
 
   static String convertConstructor(String className, String code) {
@@ -193,6 +223,8 @@ public interface Parser {
     code = replaceNonString(code, "function ", "void ");
     code = replaceNonString(code, "class ", "static class ");
     code = replaceNonString(code, "loop {", "while(true) { if(false) break; ");
+    code = replaceNonString(code, "subString", "substring");
+    code = replaceNonString(code, "StringWidth", "stringWidth");
     return code;
   }
 
