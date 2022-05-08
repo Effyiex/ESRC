@@ -1,8 +1,32 @@
 
+#$ Runnable hostListener = () ->:
+  int prevActivityState = Byte.MIN_VALUE
+  string baseDir = string.empty
+  try:
+    baseDir = new java.io.File(%ESRC_INSTANCE%.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath()
+  error:
+    e.printStackTrace()
+  loop:
+    try:
+      Thread.sleep(1000L)
+      java.io.InputStream vmActivityStream = new java.io.FileInputStream(new java.io.File(baseDir + "/.vm-activity"))
+      byte[] vmActivityBuffer = new byte[vmActivityStream.available()]
+      vmActivityStream.read(vmActivityBuffer)
+      int vmActivityState = (int) vmActivityBuffer[0]
+      if prevActivityState == vmActivityState:
+        break
+      prevActivityState = vmActivityState
+      vmActivityStream.close()
+    error:
+      e.printStackTrace()
+      break
+  System.exit(0)
+
 # String[] programArgs
 
 public # function main(String... args):
   programArgs = args
+  new Thread(hostListener).start()
   new %ESRC_INSTANCE%()
 
 class ConsoleHandler:

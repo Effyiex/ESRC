@@ -33,20 +33,34 @@ public class ESRCLauncher implements ESRCCore {
 
   public void execute() {
     try {
+
       if(!WORKSPACE.exists()) WORKSPACE.mkdir();
+
       InputStream scriptInput = new FileInputStream(scriptFile);
       byte[] scriptBuffer = new byte[scriptInput.available()];
       scriptInput.read(scriptBuffer);
       scriptInput.close();
+
       InputStream defaultInput = this.getClass().getResourceAsStream("Default.esrc");
       byte[] defaultBuffer = new byte[defaultInput.available()];
       defaultInput.read(defaultBuffer);
       defaultInput.close();
+
       String[] jarImports = ESRCParser.getJarImports(new String(scriptBuffer));
+
       String script = ESRCParser.convertCode(className, new String(defaultBuffer).replace("%ESRC_INSTANCE%", className) + new String(scriptBuffer));
+
       OutputStream javaOutput = new FileOutputStream(javaFile);
       javaOutput.write(script.getBytes());
       javaOutput.close();
+
+      String classPath = new String();
+      char sep = System.getProperty("os.name").contains("Windows") ? ';' : ':';
+      for(String jarImport : jarImports)
+      if(!jarImport.isEmpty())
+      classPath += String.valueOf(sep) + System.getProperty("user.dir") + '/' + jarImport + ".jar";
+      classPath = "\"." + sep + getClass().getProtectionDomain().getCodeSource().getLocation().toURI().getPath().substring(1) + classPath + '\"';
+
       List<String> compileCommand = new ArrayList<String>();
       compileCommand.add("javac");
       compileCommand.add("-nowarn");
@@ -55,16 +69,11 @@ public class ESRCLauncher implements ESRCCore {
       compileCommand.add("-target");
       compileCommand.add("8");
       compileCommand.add("-cp");
-      String classPath = new String();
-      char sep = System.getProperty("os.name").contains("Windows") ? ';' : ':';
-      for(String jarImport : jarImports)
-      if(!jarImport.isEmpty())
-      classPath += String.valueOf(sep) + System.getProperty("user.dir") + '/' + jarImport + ".jar";
-      classPath = "\"." + sep + getClass().getProtectionDomain().getCodeSource().getLocation().toURI().getPath().substring(1) + classPath + '\"';
       compileCommand.add(classPath);
       compileCommand.add(javaFile.getName());
       /*for(String cmdPart : compileCommand) System.out.print(cmdPart + ' ');
       System.out.print("\n");*/
+
       ProcessBuilder compileProcess = new ProcessBuilder(compileCommand);
       compileProcess.directory(WORKSPACE);
       Process compiler = compileProcess.start();
@@ -72,6 +81,9 @@ public class ESRCLauncher implements ESRCCore {
       String output;
       while(compiler.isAlive() && (output = compileLog.readLine()) != null)
       System.out.print(output + '\n');
+
+      javaFile.delete();
+
       List<String> scriptCommand = new ArrayList<String>();
       scriptCommand.add("java");
       scriptCommand.add("-cp");
@@ -79,19 +91,47 @@ public class ESRCLauncher implements ESRCCore {
       scriptCommand.add(classFile.getName().substring(0, classFile.getName().lastIndexOf('.')));
       /*for(String cmdPart : scriptCommand) System.out.print(cmdPart + ' ');
       System.out.print("\n");*/
+
       ProcessBuilder scriptProcess = new ProcessBuilder(scriptCommand);
+      scriptProcess.redirectInput(ProcessBuilder.Redirect.INHERIT);
+      scriptProcess.redirectOutput(ProcessBuilder.Redirect.INHERIT);
       this.scriptInstance = scriptProcess.start();
-      BufferedReader scriptLog = new BufferedReader(new InputStreamReader(scriptInstance.getErrorStream()));
-      while(scriptInstance.isAlive() && (output = scriptLog.readLine()) != null)
-      System.out.print(output + '\n');
-      javaFile.delete();
-      classFile.delete();
-      for(File tempFile : WORKSPACE.listFiles()) {
-        String tempName = tempFile.getName();
-        if(tempName.startsWith(className + '$') && tempName.endsWith(".class"))
-        tempFile.delete();
-      }
-      if(WORKSPACE.exists()) WORKSPACE.delete();
+
+      File vmActivityFile = new File(WORKSPACE.getAbsolutePath() + "/.vm-activity");
+      Thread vmActivityThread = new Thread(() -> {
+        int vmActivity = Byte.MIN_VALUE;
+        while(scriptInstance.isAlive()) {
+          try {
+            OutputStream vmActivityStream = new FileOutputStream(vmActivityFile);
+            vmActivityStream.write(new byte[] { (byte) vmActivity });
+            vmActivityStream.close();
+            vmActivity = vmActivity >= Byte.MAX_VALUE ? Byte.MIN_VALUE : vmActivity + 1;
+            Thread.sleep(1000L);
+          } catch (Exception e) {
+            e.printStackTrace();
+          }
+        }
+      });
+      vmActivityThread.start();
+
+      Thread endingThread = new Thread(() -> {
+        System.out.println("Quitting ESRC-VM.");
+        classFile.delete();
+        for(File tempFile : WORKSPACE.listFiles()) {
+          String tempName = tempFile.getName();
+          if(tempName.startsWith(className + '$') && tempName.endsWith(".class"))
+          tempFile.delete();
+        }
+        if(vmActivityFile.exists()) vmActivityFile.delete();
+        if(WORKSPACE.exists()) WORKSPACE.delete();
+        if(scriptInstance.isAlive()) scriptInstance.destroyForcibly();
+      });
+
+      Runtime.getRuntime().addShutdownHook(endingThread);
+
+      scriptInstance.waitFor();
+      endingThread.start();
+
     } catch (Exception e) {
       e.printStackTrace();
     }
