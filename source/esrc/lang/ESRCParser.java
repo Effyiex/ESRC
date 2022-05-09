@@ -132,6 +132,7 @@ public interface ESRCParser {
     code = replaceNonString(code, '#', "static ");
     code = replaceNonString(code, "local ", "private ");
     code = replaceNonString(code, "secured ", "protected ");
+    code = replaceNonString(code, "global ", "public ");
     return code;
   }
 

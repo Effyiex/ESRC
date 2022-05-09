@@ -1,11 +1,11 @@
 
 entry:
-  console.setPrefix("Test yeah ")
+  console.setPrefix("[ESRC-Testfile]: ")
   int i = 0
   loop:
     i++
     console.log("Tick: " + i)
     try:
-      Thread.sleep(1000L)
+      Thread.sleep(500L)
     error:
       e.printStackTrace()

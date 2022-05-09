@@ -1,7 +1,6 @@
 
 package esrc.lang;
 
-@SuppressWarnings("unchecked")
 public class Vector<Type> {
 
   private Object[] buffer;
@@ -51,8 +50,10 @@ public class Vector<Type> {
     this.buffer = new Object[0];
   }
 
-  public Type[] cast() {
-    return (Type[]) buffer;
+  public Type[] cast(Type[] buffer) {
+    for(int i = 0; i < buffer.length; i++)
+      buffer[i] = (Type) this.buffer[i];
+    return buffer;
   }
 
 }

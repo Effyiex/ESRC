@@ -1,13 +1,13 @@
 
 #$ Atomic<String[]> PROGRAM_ARGS = new Atomic().seal()
 
-public # function main(String... args):
+global # function main(String... args):
   PROGRAM_ARGS.set(args)
   try:
     ESRCCore.EXECUTED_PATH.set(%ESRC_INSTANCE%.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath().substring(1))
-    Thread vmListener = new Thread(ESRCCore.HOST_LISTENER)
-    vmListener.setDaemon(true)
-    vmListener.start()
+    Thread vmActivityCheck = new Thread(ESRCCore.VM_ACTIVITY_CHECK)
+    vmActivityCheck.setDaemon(true)
+    vmActivityCheck.start()
   error:
     e.printStackTrace()
   new %ESRC_INSTANCE%()
