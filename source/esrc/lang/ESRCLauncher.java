@@ -6,14 +6,12 @@ import java.io.InputStream;
 import java.io.FileInputStream;
 import java.io.OutputStream;
 import java.io.FileOutputStream;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.List;
 
 public class ESRCLauncher implements ESRCCore {
+
+  public static final long VM_TICK = 1000L;
 
   public final File scriptFile;
   public final File javaFile;
@@ -71,16 +69,14 @@ public class ESRCLauncher implements ESRCCore {
       compileCommand.add("-cp");
       compileCommand.add(classPath);
       compileCommand.add(javaFile.getName());
-      /*for(String cmdPart : compileCommand) System.out.print(cmdPart + ' ');
-      System.out.print("\n");*/
 
       ProcessBuilder compileProcess = new ProcessBuilder(compileCommand);
       compileProcess.directory(WORKSPACE);
+      compileProcess.redirectInput(ProcessBuilder.Redirect.INHERIT);
+      compileProcess.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+      compileProcess.redirectError(ProcessBuilder.Redirect.INHERIT);
       Process compiler = compileProcess.start();
-      BufferedReader compileLog = new BufferedReader(new InputStreamReader(compiler.getErrorStream()));
-      String output;
-      while(compiler.isAlive() && (output = compileLog.readLine()) != null)
-      System.out.print(output + '\n');
+      compiler.waitFor();
 
       javaFile.delete();
 
@@ -89,12 +85,12 @@ public class ESRCLauncher implements ESRCCore {
       scriptCommand.add("-cp");
       scriptCommand.add("\"." + sep + "/" + WORKSPACE.getAbsolutePath() + classPath.substring(2));
       scriptCommand.add(classFile.getName().substring(0, classFile.getName().lastIndexOf('.')));
-      /*for(String cmdPart : scriptCommand) System.out.print(cmdPart + ' ');
-      System.out.print("\n");*/
+      for(String vmArg : VM_ARGS.get()) scriptCommand.add(vmArg);
 
       ProcessBuilder scriptProcess = new ProcessBuilder(scriptCommand);
       scriptProcess.redirectInput(ProcessBuilder.Redirect.INHERIT);
       scriptProcess.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+      scriptProcess.redirectError(ProcessBuilder.Redirect.INHERIT);
       this.scriptInstance = scriptProcess.start();
 
       File vmActivityFile = new File(WORKSPACE.getAbsolutePath() + "/.vm-activity");
@@ -106,7 +102,7 @@ public class ESRCLauncher implements ESRCCore {
             vmActivityStream.write(new byte[] { (byte) vmActivity });
             vmActivityStream.close();
             vmActivity = vmActivity >= Byte.MAX_VALUE ? Byte.MIN_VALUE : vmActivity + 1;
-            Thread.sleep(1000L);
+            Thread.sleep(VM_TICK);
           } catch (Exception e) {
             e.printStackTrace();
           }
@@ -115,7 +111,6 @@ public class ESRCLauncher implements ESRCCore {
       vmActivityThread.start();
 
       Thread endingThread = new Thread(() -> {
-        System.out.println("Quitting ESRC-VM.");
         classFile.delete();
         for(File tempFile : WORKSPACE.listFiles()) {
           String tempName = tempFile.getName();

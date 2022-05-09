@@ -1,4 +1,11 @@
 
 entry:
-  string input = console.input("What is ur age?\n >>> ")
-  console.log("Ur Age is " + input)
+  console.setPrefix("Test yeah ")
+  int i = 0
+  loop:
+    i++
+    console.log("Tick: " + i)
+    try:
+      Thread.sleep(1000L)
+    error:
+      e.printStackTrace()

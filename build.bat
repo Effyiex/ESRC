@@ -5,7 +5,7 @@ title ESRC compiler script - by Effyiex
 echo.
 echo [ESRC-Build]: Compiling Language-Core...
 echo.
-py source/esrc/compiler/CoreCompiler.py
+py source/esrc/CoreCompiler.py
 
 xcopy /Y "source\esrc\launchers\esrc.bat" "compiled\esrc.bat" > NUL
 
