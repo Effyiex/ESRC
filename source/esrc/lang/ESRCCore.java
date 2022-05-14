@@ -51,18 +51,20 @@ public interface ESRCCore {
       if(tempName.startsWith(CLASS_NAME.get() + '$') && tempName.endsWith(".class"))
       tempFile.delete();
     }
-    if(VM_ACTIVITY_FILE.get().exists()) VM_ACTIVITY_FILE.get().delete();
+    if(VM_ACTIVITY_FILE.get() != null && VM_ACTIVITY_FILE.get().exists()) VM_ACTIVITY_FILE.get().delete();
     if(WORKSPACE.exists()) WORKSPACE.delete();
-    if(SCRIPT_INSTANCE.get().isAlive()) SCRIPT_INSTANCE.get().destroyForcibly();
+    if(SCRIPT_INSTANCE.get() != null && SCRIPT_INSTANCE.get().isAlive()) SCRIPT_INSTANCE.get().destroyForcibly();
   });
 
   Atomic<String[]> VM_ARGS = new Atomic<String[]>().seal();
+  Atomic<Boolean> JUST_COMPILE = new Atomic<Boolean>().seal();
 
   static void main(String... args) {
     for(int i = 0; i < args.length; i++) args[i] = args[i].replace("\"", new String());
     VM_ARGS.set(args);
     if(contains(args, "-IDE")) ESRCEditor.INSTANCE.launch();
     else if(args.length > 0) {
+      JUST_COMPILE.set(contains(args, "-compile"));
       String fileName = args[0];
       if(!fileName.endsWith(FILE_EXTENSION)) fileName += FILE_EXTENSION;
       ESRCCore.launch(fileName);
@@ -135,11 +137,60 @@ public interface ESRCCore {
     SCRIPT_INSTANCE.set(scriptProcess.start());
   }
 
+  static void makeArchive() throws Exception {
+    FileOutputStream fileOutput = new FileOutputStream(System.getProperty("user.dir") + '/' + CLASS_NAME.get().replace('_', ' ') + ".jar");
+    java.util.zip.ZipOutputStream archiveOutput = new java.util.zip.ZipOutputStream(fileOutput);
+    Vector<File> archiveFiles = new Vector<File>();
+    for(File file : WORKSPACE.listFiles()) archiveFiles.add(file);
+    for(int i = 0; i < archiveFiles.dimension(); i++) {
+      File file = archiveFiles.get(i);
+      if(file.isDirectory()) {
+        for(File sub : file.listFiles()) archiveFiles.add(sub);
+      } else {
+        String entry = (file.getParent().substring(WORKSPACE.getAbsolutePath().length()) + '/' + file.getName()).replace('\\', '/');
+        if(entry.startsWith("/")) entry = entry.substring(1);
+        archiveOutput.putNextEntry(new java.util.zip.ZipEntry(entry));
+        InputStream fileInput = new FileInputStream(file);
+        byte[] fileBuffer = new byte[fileInput.available()];
+        fileInput.read(fileBuffer);
+        fileInput.close();
+        archiveOutput.write(fileBuffer);
+        archiveOutput.closeEntry();
+      }
+    }
+    File jarFile = new File(ESRCCore.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath().substring(1));
+    java.util.zip.ZipFile zipFile = new java.util.zip.ZipFile(jarFile.getAbsolutePath());
+    FileInputStream fileInput = new FileInputStream(jarFile);
+    java.util.zip.ZipInputStream archiveInput = new java.util.zip.ZipInputStream(fileInput);
+    java.util.zip.ZipEntry entry;
+    while((entry = archiveInput.getNextEntry()) != null) {
+      archiveOutput.putNextEntry(new java.util.zip.ZipEntry(entry.getName()));
+      InputStream entryStream = zipFile.getInputStream(entry);
+      byte[] entryBuffer = new byte[entryStream.available()];
+      entryStream.read(entryBuffer);
+      if(entry.getName().replace('\\', '/').equalsIgnoreCase("META-INF/MANIFEST.MF")) {
+        String[] manifest = new String(entryBuffer).split("\n");
+        for(int i = 0; i < manifest.length; i++)
+          if(manifest[i].startsWith("Main-Class: "))
+            manifest[i] = "Main-Class: " + CLASS_NAME.get();
+        for(String line : manifest)
+          archiveOutput.write((line + '\n').getBytes());
+      } else archiveOutput.write(entryBuffer);
+      entryStream.close();
+      archiveOutput.closeEntry();
+    }
+    archiveInput.close();
+    fileInput.close();
+    archiveOutput.flush();
+    archiveOutput.close();
+    fileOutput.close();
+  }
+
   static void launch(String scriptFile) {
     if(SCRIPT_FILE.get() != null) return;
     String[] filePath = scriptFile.replace("\\", "/").split("/");
     String fileName = filePath[filePath.length - 1];
-    CLASS_NAME.set(fileName.substring(0, fileName.lastIndexOf(".")));
+    CLASS_NAME.set(fileName.substring(0, fileName.lastIndexOf(".")).replace(' ', '_'));
     SCRIPT_FILE.set(new File(scriptFile));
     JAVA_FILE.set(new File(WORKSPACE.getAbsolutePath() + '/' + CLASS_NAME.get() + ".java"));
     CLASS_FILE.set(new File(WORKSPACE.getAbsolutePath() + '/' + CLASS_NAME.get() + ".class"));
@@ -152,10 +203,12 @@ public interface ESRCCore {
       ESRCCore.createJavaFile(javaCode);
       ESRCCore.compileJavaFile(classPath);
       JAVA_FILE.get().delete();
-      ESRCCore.executeScript(classPath);
-      VM_ACTIVITY_THREAD.start();
-      Runtime.getRuntime().addShutdownHook(VM_SHUTDOWN_HOOK);
-      SCRIPT_INSTANCE.get().waitFor();
+      if(!JUST_COMPILE.get()) {
+        ESRCCore.executeScript(classPath);
+        VM_ACTIVITY_THREAD.start();
+        Runtime.getRuntime().addShutdownHook(VM_SHUTDOWN_HOOK);
+        SCRIPT_INSTANCE.get().waitFor();
+      } else makeArchive();
       VM_SHUTDOWN_HOOK.start();
     } catch(Exception e) {
       e.printStackTrace();
@@ -168,19 +221,22 @@ public interface ESRCCore {
 
   Runnable VM_ACTIVITY_CHECK = () -> {
     int prevActivityState = Byte.MIN_VALUE;
+    File vmActivityFile = new File(EXECUTED_PATH.get() + "/.vm-activity");
     while(true) {
       try {
         Thread.sleep(VM_TICK);
-        InputStream vmActivityStream = new FileInputStream(new File(EXECUTED_PATH.get() + "/.vm-activity"));
-        byte[] vmActivityBuffer = new byte[vmActivityStream.available()];
-        vmActivityStream.read(vmActivityBuffer);
-        int vmActivityState = (int) vmActivityBuffer[0];
-        if(prevActivityState == vmActivityState) break;
-        else {
-          prevActivityState = vmActivityState;
-          VM_TICK_LISTENER.forEach(listener -> listener.run());
-        }
-        vmActivityStream.close();
+        if(vmActivityFile.exists()) {
+          InputStream vmActivityStream = new FileInputStream(vmActivityFile);
+          byte[] vmActivityBuffer = new byte[vmActivityStream.available()];
+          vmActivityStream.read(vmActivityBuffer);
+          int vmActivityState = (int) vmActivityBuffer[0];
+          if(prevActivityState == vmActivityState) break;
+          else {
+            prevActivityState = vmActivityState;
+            VM_TICK_LISTENER.forEach(listener -> listener.run());
+          }
+          vmActivityStream.close();
+        } else VM_TICK_LISTENER.forEach(listener -> listener.run());
       } catch(Exception e) {
         e.printStackTrace();
       }

@@ -1,6 +1,7 @@
 
 package esrc.lang;
 
+@SuppressWarnings("unchecked")
 public class Vector<Type> {
 
   private Object[] buffer;

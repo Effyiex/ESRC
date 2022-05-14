@@ -1,11 +1,11 @@
 
+using:
+  javax.swing
+  java.awt
+
 entry:
-  console.setPrefix("[ESRC-Testfile]: ")
-  int i = 0
-  loop:
-    i++
-    console.log("Tick: " + i)
-    try:
-      Thread.sleep(500L)
-    error:
-      e.printStackTrace()
+  JFrame frame = new JFrame("Test LOL")
+  frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
+  frame.setSize(800, 480)
+  frame.setLocation(32, 32)
+  frame.setVisible(true)
