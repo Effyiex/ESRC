@@ -10,7 +10,8 @@ import java.io.FileOutputStream;
 public interface ESRCCore {
 
   String FILE_EXTENSION = ".esrc";
-  File WORKSPACE = new File(System.getProperty("user.dir") + '/' + FILE_EXTENSION);
+
+  Atomic<File> WORKSPACE = new Atomic<File>(new File(System.getProperty("user.dir") + '/' + FILE_EXTENSION));
 
   static boolean contains(Object[] array, Object obj) {
     for(Object item : array)
@@ -30,7 +31,7 @@ public interface ESRCCore {
 
   Thread VM_ACTIVITY_THREAD = new Thread(() -> {
     int vmActivity = Byte.MIN_VALUE;
-    VM_ACTIVITY_FILE.set(new File(WORKSPACE.getAbsolutePath() + "/.vm-activity"));
+    VM_ACTIVITY_FILE.set(new File(WORKSPACE.get().getAbsolutePath() + "/.vm-activity"));
     while(SCRIPT_INSTANCE.get().isAlive()) {
       try {
         OutputStream vmActivityStream = new FileOutputStream(VM_ACTIVITY_FILE.get());
@@ -46,13 +47,13 @@ public interface ESRCCore {
 
   Thread VM_SHUTDOWN_HOOK = new Thread(() -> {
     CLASS_FILE.get().delete();
-    for(File tempFile : WORKSPACE.listFiles()) {
+    for(File tempFile : WORKSPACE.get().listFiles()) {
       String tempName = tempFile.getName();
       if(tempName.startsWith(CLASS_NAME.get() + '$') && tempName.endsWith(".class"))
       tempFile.delete();
     }
     if(VM_ACTIVITY_FILE.get() != null && VM_ACTIVITY_FILE.get().exists()) VM_ACTIVITY_FILE.get().delete();
-    if(WORKSPACE.exists()) WORKSPACE.delete();
+    if(WORKSPACE.get().exists()) WORKSPACE.get().delete();
     if(SCRIPT_INSTANCE.get() != null && SCRIPT_INSTANCE.get().isAlive()) SCRIPT_INSTANCE.get().destroyForcibly();
   });
 
@@ -65,7 +66,8 @@ public interface ESRCCore {
     if(contains(args, "-IDE")) ESRCEditor.INSTANCE.launch();
     else if(args.length > 0) {
       JUST_COMPILE.set(contains(args, "-compile"));
-      String fileName = args[0];
+      String fileName = args[0].replace('\\', '/');
+      if(System.getProperty("os.name").contains("Windows") && System.getProperty("user.dir").replace('\\', '/').contains("C:/Windows/system32")) WORKSPACE.set(new File(fileName.substring(0, fileName.lastIndexOf('/')) + '/' + FILE_EXTENSION));
       if(!fileName.endsWith(FILE_EXTENSION)) fileName += FILE_EXTENSION;
       ESRCCore.launch(fileName);
     }
@@ -116,7 +118,7 @@ public interface ESRCCore {
     compileCommand.add(classPath);
     compileCommand.add(JAVA_FILE.get().getName());
     ProcessBuilder compileProcess = new ProcessBuilder(compileCommand.cast(new String[compileCommand.dimension()]));
-    compileProcess.directory(WORKSPACE);
+    compileProcess.directory(WORKSPACE.get());
     compileProcess.redirectInput(ProcessBuilder.Redirect.INHERIT);
     compileProcess.redirectOutput(ProcessBuilder.Redirect.INHERIT);
     compileProcess.redirectError(ProcessBuilder.Redirect.INHERIT);
@@ -127,7 +129,7 @@ public interface ESRCCore {
     Vector<String> scriptCommand = new Vector<String>();
     scriptCommand.add("java");
     scriptCommand.add("-cp");
-    scriptCommand.add("\"." + CP_SEPERATOR + "/" + WORKSPACE.getAbsolutePath() + classPath.substring(2));
+    scriptCommand.add("\"." + CP_SEPERATOR + "/" + WORKSPACE.get().getAbsolutePath() + classPath.substring(2));
     scriptCommand.add(CLASS_FILE.get().getName().substring(0, CLASS_FILE.get().getName().lastIndexOf('.')));
     for(String vmArg : VM_ARGS.get()) scriptCommand.add(vmArg);
     ProcessBuilder scriptProcess = new ProcessBuilder(scriptCommand.cast(new String[scriptCommand.dimension()]));
@@ -141,13 +143,13 @@ public interface ESRCCore {
     FileOutputStream fileOutput = new FileOutputStream(System.getProperty("user.dir") + '/' + CLASS_NAME.get().replace('_', ' ') + ".jar");
     java.util.zip.ZipOutputStream archiveOutput = new java.util.zip.ZipOutputStream(fileOutput);
     Vector<File> archiveFiles = new Vector<File>();
-    for(File file : WORKSPACE.listFiles()) archiveFiles.add(file);
+    for(File file : WORKSPACE.get().listFiles()) archiveFiles.add(file);
     for(int i = 0; i < archiveFiles.dimension(); i++) {
       File file = archiveFiles.get(i);
       if(file.isDirectory()) {
         for(File sub : file.listFiles()) archiveFiles.add(sub);
       } else {
-        String entry = (file.getParent().substring(WORKSPACE.getAbsolutePath().length()) + '/' + file.getName()).replace('\\', '/');
+        String entry = (file.getParent().substring(WORKSPACE.get().getAbsolutePath().length()) + '/' + file.getName()).replace('\\', '/');
         if(entry.startsWith("/")) entry = entry.substring(1);
         archiveOutput.putNextEntry(new java.util.zip.ZipEntry(entry));
         InputStream fileInput = new FileInputStream(file);
@@ -192,24 +194,24 @@ public interface ESRCCore {
     String fileName = filePath[filePath.length - 1];
     CLASS_NAME.set(fileName.substring(0, fileName.lastIndexOf(".")).replace(' ', '_'));
     SCRIPT_FILE.set(new File(scriptFile));
-    JAVA_FILE.set(new File(WORKSPACE.getAbsolutePath() + '/' + CLASS_NAME.get() + ".java"));
-    CLASS_FILE.set(new File(WORKSPACE.getAbsolutePath() + '/' + CLASS_NAME.get() + ".class"));
+    JAVA_FILE.set(new File(WORKSPACE.get().getAbsolutePath() + '/' + CLASS_NAME.get() + ".java"));
+    CLASS_FILE.set(new File(WORKSPACE.get().getAbsolutePath() + '/' + CLASS_NAME.get() + ".class"));
     try {
-      if(!WORKSPACE.exists()) WORKSPACE.mkdir();
+      if(!WORKSPACE.get().exists()) WORKSPACE.get().mkdir();
       String userScript = getUserScript();
       String[] jarImports = ESRCParser.getJarImports(userScript);
       String javaCode = ESRCParser.convertCode(CLASS_NAME.get(), getDefaultScript() + userScript);
       String classPath = getClasspath(jarImports);
       ESRCCore.createJavaFile(javaCode);
       ESRCCore.compileJavaFile(classPath);
-      JAVA_FILE.get().delete();
+      //JAVA_FILE.get().delete();
       if(!JUST_COMPILE.get()) {
         ESRCCore.executeScript(classPath);
         VM_ACTIVITY_THREAD.start();
         Runtime.getRuntime().addShutdownHook(VM_SHUTDOWN_HOOK);
         SCRIPT_INSTANCE.get().waitFor();
       } else makeArchive();
-      VM_SHUTDOWN_HOOK.start();
+      //VM_SHUTDOWN_HOOK.start();
     } catch(Exception e) {
       e.printStackTrace();
     }

@@ -1,11 +1,7 @@
 
-using:
-  javax.swing
-  java.awt
+Vector<String> greetings = new Vector("Hello", "Hi", "Hey", "High", "Hohoho")
 
 entry:
-  JFrame frame = new JFrame("Test LOL")
-  frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
-  frame.setSize(800, 480)
-  frame.setLocation(32, 32)
-  frame.setVisible(true)
+  console.setPrefix("[ESRC-Test]: ")
+  greetings.forEach as greeting:
+    console.log(greeting)

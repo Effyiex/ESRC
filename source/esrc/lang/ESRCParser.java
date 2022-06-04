@@ -7,6 +7,7 @@ import java.util.List;
 public interface ESRCParser {
 
   static String convertCode(String className, String code) {
+    code = convertAsBlocks(code);
     code = convertBracketlessStatements(code);
     code = convertSyntax(code);
     code = convertTryCatchBlocks(code);
@@ -44,6 +45,37 @@ public interface ESRCParser {
       output += line + '\n';
     }
     return output;
+  }
+
+  static String convertAsBlocks(String code) {
+    String newCode = new String();
+    int asStatement = 0;
+    int prevSpacing = 0;
+    int asSpacing = 0;
+    char spaceHeader = ' ';
+    for(String line : code.split("\n")) {
+      int postSpacing = analyseSpacingOfLine(line);
+      if(line.contains(" as ")) {
+        asStatement++;
+        asSpacing = postSpacing;
+        spaceHeader = line.charAt(0);
+        line = replaceNonString(line, ':', "->");
+      }
+      line = replaceNonString(line, " as ", '(');
+      if(asStatement > 0 && postSpacing < prevSpacing) {
+        String newLine = new String();
+        for(int i = 0; i < postSpacing; i++) newLine += spaceHeader;
+        newCode += newLine + ")\n";
+        asStatement--;
+      }
+      prevSpacing = postSpacing;
+      newCode += line + '\n';
+    }
+    if(asStatement > 0) {
+      for(int i = 0; i < asSpacing; i++) newCode += spaceHeader;
+      newCode += ")\n";
+    }
+    return newCode;
   }
 
   static String correctElseBlocks(String code) {
@@ -101,17 +133,21 @@ public interface ESRCParser {
   }
 
   static String convertSyntax(String code) {
+    code = replaceNonString(code, "->", "-> {");
     code = replaceNonString(code, ":", " {");
     code = replaceNonString(code, " { {", "::");
-    int spacing = analyseSpacing(code);
     String newCode = new String();
+    int spacing = analyseSpacing(code);
     int concurrent = 0;
     for(String line : code.split("\n")) {
       if(line.trim().isEmpty()) continue;
       int lineSpacing = analyseSpacingOfLine(line);
       if(lineSpacing < concurrent) {
         int bracketsNeeded = (concurrent - lineSpacing) / spacing;
-        for(int i = 0; i < bracketsNeeded; i++) line = "}\n" + line;
+        for(int i = 0; i < bracketsNeeded; i++) {
+          if(line.trim().equals(")")) line = "}" + line;
+          else line = "}\n" + line;
+        }
       }
       concurrent = lineSpacing;
       newCode += line + '\n';
@@ -234,6 +270,10 @@ public interface ESRCParser {
     code = replaceNonString(code, " or ", " || ");
     code = replaceNonString(code, " in ", " : ");
     code = replaceNonString(code, " not ", " ! ");
+    code = replaceNonString(code, " is ", " == ");
+    code = replaceNonString(code, " assign ", " = ");
+    code = replaceNonString(code, " ++ ", " ? ");
+    code = replaceNonString(code, " -- ", " : ");
     return code;
   }
 

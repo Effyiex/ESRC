@@ -7,13 +7,11 @@ public class ConsoleHandler {
 
     private final Vector<String[]> buffer = new Vector<String[]>();
 
-    private final Runnable onTick = () -> {
-      buffer.forEach(text -> AwaitingConsoleHandler.super.append(text));
-      buffer.clear();
-    };
-
     public AwaitingConsoleHandler() {
-      ESRCCore.VM_TICK_LISTENER.add(onTick);
+      ESRCCore.VM_TICK_LISTENER.add(() -> {
+        buffer.forEach(text -> AwaitingConsoleHandler.super.append(text));
+        buffer.clear();
+      });
     }
 
     protected void append(String... text) {

@@ -1,6 +1,13 @@
 
 #$ Atomic<String[]> PROGRAM_ARGS = new Atomic().seal()
 
+#$ function sleep(float seconds):
+  long ms = (long) (seconds * 1000.0F)
+  try:
+    Thread.sleep(ms)
+  error:
+    return
+
 global # function main(String... args):
   PROGRAM_ARGS.set(args)
   try:
@@ -11,5 +18,6 @@ global # function main(String... args):
   error:
     e.printStackTrace()
   new %ESRC_INSTANCE%()
+  sleep(0.5F)
 
 # ConsoleHandler console = new ConsoleHandler.AwaitingConsoleHandler()
