@@ -204,14 +204,14 @@ public interface ESRCCore {
       String classPath = getClasspath(jarImports);
       ESRCCore.createJavaFile(javaCode);
       ESRCCore.compileJavaFile(classPath);
-      //JAVA_FILE.get().delete();
+      JAVA_FILE.get().delete();
       if(!JUST_COMPILE.get()) {
         ESRCCore.executeScript(classPath);
         VM_ACTIVITY_THREAD.start();
         Runtime.getRuntime().addShutdownHook(VM_SHUTDOWN_HOOK);
         SCRIPT_INSTANCE.get().waitFor();
       } else makeArchive();
-      //VM_SHUTDOWN_HOOK.start();
+      VM_SHUTDOWN_HOOK.start();
     } catch(Exception e) {
       e.printStackTrace();
     }

@@ -8,6 +8,26 @@
   error:
     return
 
+#$ int random(int min, int max):
+  return (int) (System.nanoTime() % (max - min + 1))
+
+#$ int RANDOM_FLOAT_RANGE = 10000
+
+#$ float random():
+  return random(0, RANDOM_FLOAT_RANGE) / (float) RANDOM_FLOAT_RANGE
+
+#$ int[] range(int total):
+  int[] output = new int[total]
+  for int i = 0; i < total; i++:
+    output[i] = i
+  return output
+
+#$ int[] shift(int total):
+  int[] output = new int[total]
+  for int i = 0; i < total; i++:
+    output[i] = total - i - 1
+  return output
+
 global # function main(String... args):
   PROGRAM_ARGS.set(args)
   try:

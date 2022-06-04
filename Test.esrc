@@ -1,7 +1,8 @@
 
-Vector<String> greetings = new Vector("Hello", "Hi", "Hey", "High", "Hohoho")
-
 entry:
-  console.setPrefix("[ESRC-Test]: ")
-  greetings.forEach as greeting:
-    console.log(greeting)
+  console assign new ConsoleHandler()
+  console.log("\nCounting...\n")
+  for int i in range(10):
+    System.out.print(str(i + 1) + (9 > i ++ ", " -- '\n'))
+    sleep(1)
+  console.log("\nFinished!!!\n")

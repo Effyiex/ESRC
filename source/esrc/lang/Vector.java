@@ -47,13 +47,16 @@ public class Vector<Type> {
     for(Object o : buffer) handler.accept((Type) o);
   }
 
+  public void forEach(DualConsumer<Type, Integer> handler) {
+    for(int i = 0; i < buffer.length; i++) handler.accept((Type) buffer[i], i);
+  }
+
   public void clear() {
     this.buffer = new Object[0];
   }
 
   public Type[] cast(Type[] buffer) {
-    for(int i = 0; i < buffer.length; i++)
-      buffer[i] = (Type) this.buffer[i];
+    for(int i = 0; i < buffer.length; i++) buffer[i] = (Type) this.buffer[i];
     return buffer;
   }
 
