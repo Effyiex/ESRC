@@ -11,7 +11,7 @@
 #$ int random(int min, int max):
   return (int) (System.nanoTime() % (max - min + 1))
 
-#$ int RANDOM_FLOAT_RANGE = 10000
+#$ int RANDOM_FLOAT_RANGE = 10000000
 
 #$ float random():
   return random(0, RANDOM_FLOAT_RANGE) / (float) RANDOM_FLOAT_RANGE
@@ -27,6 +27,9 @@
   for int i = 0; i < total; i++:
     output[i] = total - i - 1
   return output
+
+#$ int _floor(float value):
+  return (int) (value - (value % 1))
 
 global # function main(String... args):
   PROGRAM_ARGS.set(args)

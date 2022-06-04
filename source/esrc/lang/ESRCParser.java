@@ -263,6 +263,7 @@ public interface ESRCParser {
     code = replaceNonString(code, "subString", "substring");
     code = replaceNonString(code, "StringWidth", "stringWidth");
     code = replaceNonString(code, "str(", "String.valueOf(");
+    code = replaceNonString(code, "Math.floor(", "_floor(");
     code = replaceNonString(code, "<handle>", "()");
     return code;
   }

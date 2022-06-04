@@ -1,8 +1,5 @@
 
 entry:
-  console assign new ConsoleHandler()
-  console.log("\nCounting...\n")
-  for int i in range(10):
-    System.out.print(str(i + 1) + (9 > i ++ ", " -- '\n'))
-    sleep(1)
-  console.log("\nFinished!!!\n")
+  float x = 7.9999F
+  int y = Math.floor(x)
+  console.log("X: " + x + ", Y: " + y)
