@@ -1,5 +1,6 @@
 
+using:
+  SCRIPT/TestLibrary
+
 entry:
-  float x = 7.9999F
-  int y = Math.floor(x)
-  console.log("X: " + x + ", Y: " + y)
+  greet()

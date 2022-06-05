@@ -185,6 +185,9 @@ public interface ESRCParser {
           String sub = line.trim().substring(prefix.length());
           switch(prefix) {
 
+            case "SCRIPT":
+              break;
+
             case "JAR":
               break;
 
@@ -215,6 +218,23 @@ public interface ESRCParser {
       } else if(line.trim().equalsIgnoreCase("using {")) usingDirectives = true;
     }
     return jars.split(", ");
+  }
+
+  static String[] getScriptImports(String code) {
+    code = convertSyntax(code);
+    boolean usingDirectives = false;
+    String scripts = new String();
+    for(String line : code.split(String.valueOf('\n'))) {
+      if(line.length() > 1 && line.startsWith(String.valueOf(';'))) line = line.substring(1);
+      if(usingDirectives) {
+        if(line.trim().equalsIgnoreCase(String.valueOf('}'))) usingDirectives = false;
+        else {
+          String prefix = line.trim().split("/")[0];
+          if(prefix.equals("SCRIPT")) scripts += line.trim().substring(prefix.length() + 1) + ", ";
+        }
+      } else if(line.trim().equalsIgnoreCase("using {")) usingDirectives = true;
+    }
+    return scripts.split(", ");
   }
 
   static String convertConstructor(String className, String code) {

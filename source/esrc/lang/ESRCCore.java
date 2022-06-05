@@ -188,6 +188,22 @@ public interface ESRCCore {
     fileOutput.close();
   }
 
+  static String appendScriptImports(String code, String[] imports) {
+    for(String scriptImport : imports) {
+      String path = System.getProperty("user.dir") + '/' + (scriptImport.endsWith(".esrc") ? scriptImport : scriptImport + ".esrc");
+      try {
+        InputStream stream = new FileInputStream(path);
+        byte[] buffer = new byte[stream.available()];
+        stream.read(buffer);
+        code = new String(buffer) + '\n' + code;
+        stream.close();
+      } catch(Exception e) {
+        e.printStackTrace();
+      }
+    }
+    return code;
+  }
+
   static void launch(String scriptFile) {
     if(SCRIPT_FILE.get() != null) return;
     String[] filePath = scriptFile.replace("\\", "/").split("/");
@@ -200,6 +216,8 @@ public interface ESRCCore {
       if(!WORKSPACE.get().exists()) WORKSPACE.get().mkdir();
       String userScript = getUserScript();
       String[] jarImports = ESRCParser.getJarImports(userScript);
+      String[] scriptImports = ESRCParser.getScriptImports(userScript);
+      userScript = appendScriptImports(userScript, scriptImports);
       String javaCode = ESRCParser.convertCode(CLASS_NAME.get(), getDefaultScript() + userScript);
       String classPath = getClasspath(jarImports);
       ESRCCore.createJavaFile(javaCode);
