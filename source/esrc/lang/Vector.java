@@ -6,11 +6,19 @@ public class Vector<Type> {
 
   private Object[] buffer;
 
+  private boolean sealed = false;
+
   public Vector(Type... initial) {
     this.buffer = initial;
   }
 
+  public Vector<Type> seal() {
+    this.sealed = true;
+    return this;
+  }
+
   public void add(Type item) {
+    if(sealed) return;
     Object[] replace = new Object[buffer.length + 1];
     for(int i = 0; i < buffer.length; i++) replace[i] = buffer[i];
     replace[buffer.length] = item;
@@ -18,6 +26,7 @@ public class Vector<Type> {
   }
 
   public void remove(int index) {
+    if(sealed) return;
     Object[] replace = new Object[buffer.length - 1];
     for(int i = 0; i < buffer.length; i++)
       if(i < index) replace[i] = buffer[i];
@@ -32,11 +41,16 @@ public class Vector<Type> {
   }
 
   public void remove(Type item) {
+    if(sealed) return;
     this.remove(indexOf(item));
   }
 
   public Type get(int index) {
     return (Type) buffer[index];
+  }
+
+  public void set(int index, Type value) {
+    this.buffer[index] = value;
   }
 
   public int dimension() {
@@ -58,6 +72,22 @@ public class Vector<Type> {
   public Type[] cast(Type[] buffer) {
     for(int i = 0; i < buffer.length; i++) buffer[i] = (Type) this.buffer[i];
     return buffer;
+  }
+
+  public Object cast(Class<?> clazz) {
+    Object instance = null;
+    for(java.lang.reflect.Constructor con : clazz.getConstructors()) {
+      if(con.getParameterTypes()[0] != buffer[0].getClass()) continue;
+      if(con.getParameterCount() == buffer.length) {
+        try {
+          instance = con.newInstance(buffer);
+        } catch(Exception e) {
+          e.printStackTrace();
+        }
+        break;
+      }
+    }
+    return instance;
   }
 
 }

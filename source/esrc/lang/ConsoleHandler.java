@@ -42,7 +42,15 @@ public class ConsoleHandler {
 
   public String input(String... text) {
     this.append(text);
-    return System.console().readLine();
+    String consoleInput = new String();
+    try {
+      java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(System.in));
+      consoleInput = reader.readLine();
+      reader.close();
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+    return consoleInput;
   }
 
 }

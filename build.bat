@@ -19,6 +19,11 @@ echo.
 xcopy /Y "source\esrc\launchers\esrc.bat" "compiled\esrc.bat" > NUL
 xcopy /Y "source\esrc\launchers\esrcw.bat" "compiled\esrcw.bat" > NUL
 
+echo.
+echo [ESRC-Build]: Compiling Windows-Executable
+echo.
+csc /out:"compiled/esrc.exe" /target:exe /win32icon:"assets/Icon.ico" source/esrc/launchers/WinExe.cs
+
 timeout /t 1 > NUL
 
 if "%1" == "" goto :eof

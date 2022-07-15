@@ -60,13 +60,19 @@ public interface ESRCCore {
   Atomic<String[]> VM_ARGS = new Atomic<String[]>().seal();
   Atomic<Boolean> JUST_COMPILE = new Atomic<Boolean>().seal();
 
+  Atomic<String> DIR_MODIFIER = new Atomic<String>("");
+
   static void main(String... args) {
     for(int i = 0; i < args.length; i++) args[i] = args[i].replace("\"", new String());
     VM_ARGS.set(args);
     if(contains(args, "-IDE")) ESRCEditor.INSTANCE.launch();
     else if(args.length > 0) {
-      JUST_COMPILE.set(contains(args, "-compile"));
+      JUST_COMPILE.set(contains(args, "-compile:java"));
       String fileName = args[0].replace('\\', '/');
+      if(fileName.startsWith("$")) {
+        DIR_MODIFIER.set(fileName.substring(1) + '/');
+        fileName = DIR_MODIFIER.get() + "Main";
+      }
       if(System.getProperty("os.name").contains("Windows") && System.getProperty("user.dir").replace('\\', '/').contains("C:/Windows/system32")) WORKSPACE.set(new File(fileName.substring(0, fileName.lastIndexOf('/')) + '/' + FILE_EXTENSION));
       if(!fileName.endsWith(FILE_EXTENSION)) fileName += FILE_EXTENSION;
       ESRCCore.launch(fileName);
@@ -190,7 +196,8 @@ public interface ESRCCore {
 
   static String appendScriptImports(String code, String[] imports) {
     for(String scriptImport : imports) {
-      String path = System.getProperty("user.dir") + '/' + (scriptImport.endsWith(".esrc") ? scriptImport : scriptImport + ".esrc");
+      if(scriptImport.trim().isEmpty()) continue;
+      String path = System.getProperty("user.dir") + '/' + DIR_MODIFIER.get() + (scriptImport.endsWith(".esrc") ? scriptImport : scriptImport + ".esrc");
       try {
         InputStream stream = new FileInputStream(path);
         byte[] buffer = new byte[stream.available()];

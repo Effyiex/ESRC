@@ -1,6 +1,9 @@
 
-using:
-  SCRIPT/TestLibrary
+$ Window window = new Window()
 
 entry:
-  greet()
+  window.scale(0.25F, 0.25F)
+  window.anker(0.5F, 0.5F)
+  window.position(0.5F, 0.5F)
+  window.title = "Hello World"
+  window.show()
